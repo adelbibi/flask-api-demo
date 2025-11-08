@@ -1,2 +1,0 @@
-{"timestamp": 1762616193, "message": "Hello"}
-{"timestamp": 1762616206, "message": "Hello worldcurl -X POST http://localhost:5000/store -d message=Hello\n #"}
