@@ -1,2 +1,2 @@
-{"timestamp": 1762607642, "payload": {"title": "Alice", "body": "This is Alice posting the message using curl"}}
-
+{"timestamp": 1762616193, "message": "Hello"}
+{"timestamp": 1762616206, "message": "Hello worldcurl -X POST http://localhost:5000/store -d message=Hello\n #"}

@@ -39,7 +39,13 @@ curl -i http://127.0.0.1:5000/
 ```bash
 curl -i -X POST http://127.0.0.1:5000/store \
   -H "Content-Type: application/json" \
-  -d '{"title":"Adel","body":"hello"}'
+  -d '{"message": "Hello from JSON"}'
+```
+
+or
+
+```bash
+curl -X POST http://127.0.0.1:5000//store -d "message=Hello"
 ```
 
 ### Get All Messages
@@ -69,7 +75,12 @@ Example message storage on Render:
 ```bash
 curl -i -X POST https://your-service-name.onrender.com/store \
   -H "Content-Type: application/json" \
-  -d '{"title":"Adel","body":"hello two!"}'
+  -d '{"message": "Hello from JSON"}'
+```
+or
+
+```bash
+curl -X POST https://your-service-name.onrender.com/store -d "message=Hello"
 ```
 
 ## � Notes
