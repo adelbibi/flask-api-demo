@@ -1,8 +1,9 @@
 # simple_api.py
-from flask import Flask, request, jsonify, render_template_string, abort
+from flask import Flask, request, jsonify, render_template_string
 import os
 import json
 import time
+from datetime import datetime, timezone
 import html
 
 app = Flask(__name__)
@@ -25,7 +26,6 @@ def read_store_lines():
             try:
                 entries.append(json.loads(line))
             except Exception:
-                # skip malformed lines
                 continue
     return entries
 
@@ -38,17 +38,24 @@ def append_entry(payload: dict):
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     return entry
 
+def format_gmt(ts: int) -> str:
+    """Format Unix timestamp as DD/MM/YYYY and GMT time string."""
+    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    date_str = dt.strftime("%d/%m/%Y")
+    time_str = dt.strftime("%H:%M:%S GMT")
+    return date_str, time_str
+
 # --------------------
 # Routes
 # --------------------
 @app.route("/", methods=["GET"])
 def root():
+    """Simple home page with link to log view."""
     return (
         "<!doctype html><html><head><meta charset='utf-8'><title>Logger</title></head>"
         "<body style='font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:24px;'>"
         "<h2>logger</h2>"
-        "<p><a href='/items'>View logged messages (table)</a> &nbsp; • &nbsp;"
-        "<a href='/items.json'>Get JSON</a></p>"
+        "<p><a href='/items'>View logged messages</a></p>"
         "</body></html>"
     )
 
@@ -64,72 +71,81 @@ def store_message():
 
 @app.route("/items", methods=["GET"])
 def items_html():
-    """Return an HTML page with stored messages as a table (human-friendly)."""
+    """Render a simplified HTML table of stored messages."""
     entries = read_store_lines()
-    # Build rows with safe escaping (avoid XSS)
-    # We'll show id (index), timestamp (human), and payload fields as JSON-pretty and a few columns if present.
+    # newest first
     rows = []
-    for i, e in enumerate(reversed(entries), start=1):  # newest first
+    for e in reversed(entries):
         ts = e.get("timestamp", 0)
         payload = e.get("payload", {})
-        # Convert payload to pretty JSON for a single column; escape HTML
-        payload_pretty = html.escape(json.dumps(payload, ensure_ascii=False, indent=2))
-        rows.append({
-            "id": i,
-            "timestamp": ts,
-            "payload_raw": payload_pretty,
-            # try to extract some simple columns if keys exist
-            "title": html.escape(str(payload.get("title", ""))) if isinstance(payload, dict) else "",
-            "body": html.escape(str(payload.get("body", ""))) if isinstance(payload, dict) else ""
-        })
+        date_str, time_str = format_gmt(ts)
+        title = html.escape(str(payload.get("title", "")))
+        body = html.escape(str(payload.get("body", "")))
+        rows.append({"date": date_str, "time": time_str, "title": title, "body": body})
 
-    # Simple responsive page template
     template = """
     <!doctype html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Logger - items</title>
+      <title>Logger - Messages</title>
       <style>
-        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 20px; }
-        table { border-collapse: collapse; width: 100%; max-width: 1100px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-        th { background: #f6f8fa; font-weight: 600; }
-        tr:nth-child(even) { background: #fbfbfb; }
-        pre { margin:0; white-space:pre-wrap; word-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; font-size: 13px; }
-        .meta { color:#666; font-size:12px; }
-        .controls { margin-bottom: 12px; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+            padding: 24px;
+            background: #fafafa;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        th {
+            background: #f6f8fa;
+            font-weight: 600;
+        }
+        tr:hover { background: #f9f9f9; }
+        h2 { margin-bottom: 20px; }
+        .meta { color: #666; font-size: 13px; }
+        .empty { color: #888; margin-top: 20px; }
       </style>
     </head>
     <body>
-      <h2>Logger — saved messages</h2>
-      <div class="controls">
-        <a href="/">Home</a> • <a href="/items.json">Raw JSON</a>
-      </div>
+      <h2>Logged Messages</h2>
+      {% if rows %}
       <table>
         <thead>
           <tr>
-            <th>#</th>
-            <th>Time (epoch)</th>
+            <th>Date</th>
+            <th>Timestamp (GMT)</th>
             <th>Title</th>
             <th>Body</th>
-            <th>Full payload</th>
           </tr>
         </thead>
         <tbody>
-        {% for r in rows %}
+          {% for r in rows %}
           <tr>
-            <td>{{ r.id }}</td>
-            <td class="meta">{{ r.timestamp }}</td>
+            <td>{{ r.date }}</td>
+            <td class="meta">{{ r.time }}</td>
             <td>{{ r.title }}</td>
-            <td>{{ r.body }}</td>
-            <td><pre>{{ r.payload_raw }}</pre></td>
+            <td>{{ r.body | safe }}</td>
           </tr>
-        {% else %}
-          <tr><td colspan="5">No messages yet</td></tr>
-        {% endfor %}
+          {% endfor %}
         </tbody>
       </table>
+      {% else %}
+      <p class="empty">No messages yet.</p>
+      {% endif %}
+      <p style="margin-top:20px;"><a href="/">← Back to home</a></p>
     </body>
     </html>
     """
@@ -137,7 +153,6 @@ def items_html():
 
 @app.route("/items.json", methods=["GET"])
 def items_json():
-    """Return raw JSON array of stored entries (programmatic)."""
     entries = read_store_lines()
     return jsonify(entries)
 
