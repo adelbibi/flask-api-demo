@@ -1,2 +1,2 @@
-{"timestamp": 1762607642, "payload": {"title": "hello", "body": "This is stored locally"}}
+{"timestamp": 1762607642, "payload": {"title": "Alice", "body": "This is Alice posting the message using curl"}}
 
