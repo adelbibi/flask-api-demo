@@ -45,7 +45,7 @@ curl -i -X POST http://127.0.0.1:5000/store \
 or
 
 ```bash
-curl -X POST http://127.0.0.1:5000//store -d "message=Hello"
+curl -X POST http://127.0.0.1:5000/store -d "message=Hello"
 ```
 
 ### Get All Messages
