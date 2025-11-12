@@ -53,6 +53,12 @@ curl -X POST http://127.0.0.1:5000/store -d "message=Hello"
 curl -i http://127.0.0.1:5000/items
 ```
 
+You can also pass query parameters to `/items` and they will be logged. For example:
+```bash
+curl -i -X GET "http://127.0.0.1:5000/items?key=value&foo=bar"
+```
+All parameters in the URL will be recorded in the log and shown in the messages table.
+
 ## 🚀 Deploy to Render
 
 ### 1. Setup on Render
