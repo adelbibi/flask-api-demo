@@ -1,6 +1,6 @@
 # � Flask Message Storage
 
-A simple **Flask application** for storing and retrieving messages. Messages are stored in a text file and can be retrieved as JSON.
+A simple **Flask application** for storing and retrieving messages and uploading files. Messages and file metadata are stored in a text file, and files (images, PDFs, etc.) are securely saved and retrievable.
 
 ## 🚀 Quick Start
 
@@ -23,7 +23,7 @@ A simple **Flask application** for storing and retrieving messages. Messages are
 
 3. **Start the server:**
    ```bash
-   python simple_api.py
+   python main.py
    ```
 
 Your API will be running at `http://127.0.0.1:5000`
@@ -48,7 +48,27 @@ or
 curl -X POST http://127.0.0.1:5000/store -d "message=Hello"
 ```
 
-### Get All Messages
+### Upload Files (Images, PDFs, etc.)
+
+Upload a single file with an optional message:
+```bash
+curl -X POST http://127.0.0.1:5000/store \
+  -F 'file=@/path/to/image.png' \
+  -F 'message=My uploaded image'
+```
+
+Upload multiple files at once:
+```bash
+curl -X POST http://127.0.0.1:5000/store \
+  -F 'file=@image1.jpg' \
+  -F 'file=@image2.png' \
+  -F 'file=@document.pdf'
+```
+
+**Supported file types:** PNG, JPG, JPEG, GIF, WebP, PDF, TXT, CSV, JSON
+**Max file size:** 50 MB per file
+
+### Get All Messages & Files
 ```bash
 curl -i http://127.0.0.1:5000/items
 ```
@@ -61,7 +81,13 @@ All parameters in the URL will be recorded in the log and shown in the messages 
 
 ## 🚀 Deploy to Render
 
-### 1. Setup on Render
+### Live Deployment
+This application is deployed on Render at:
+```
+https://tyr-api.onrender.com
+```
+
+### Setup on Render (if deploying your own)
 1. Sign up/login to [Render](https://render.com)
 2. Click "New +" and select "Web Service"
 3. Connect your GitHub repository
@@ -69,27 +95,40 @@ All parameters in the URL will be recorded in the log and shown in the messages 
    - **Name**: Choose a name
    - **Runtime**: Python 3
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn simple_api:app`
+   - **Start Command**: `gunicorn main:app --bind 0.0.0.0:$PORT`
 
-### 2. Access Your Application
-Once deployed, your application will be available at:
-```
-https://your-service-name.onrender.com
-```
+The repository includes a `Procfile` which Render will use to determine the start command automatically.
 
-Example message storage on Render:
+### Using the Live Deployment
+
+**Store a message:**
 ```bash
-curl -i -X POST https://your-service-name.onrender.com/store \
+curl -X POST https://tyr-api.onrender.com/store \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello from JSON"}'
 ```
-or
 
+**Upload a file:**
 ```bash
-curl -X POST https://your-service-name.onrender.com/store -d "message=Hello"
+curl -X POST https://tyr-api.onrender.com/store \
+  -F 'file=@image.png' \
+  -F 'message=My image'
+```
+
+**View all messages and files:**
+```bash
+curl https://tyr-api.onrender.com/items
+```
+
+Or open in your browser:
+```
+https://tyr-api.onrender.com/items
 ```
 
 ## � Notes
-- Messages are stored in a text file
-- Simple JSON format for message storage
-- Suitable for development and testing purposes
+- Messages and file metadata are stored in `messages.txt` (JSON lines format)
+- Uploaded files are stored in the `uploads/` folder with timestamped names
+- Files are served via the `/downloads/<filename>` endpoint
+- Image files (PNG, JPG, GIF, WebP) display as thumbnails in the `/items` view
+- All requests (including GET to `/items`) can be optionally logged via query parameters
+- Suitable for development, testing, and logging purposes
